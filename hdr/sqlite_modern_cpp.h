@@ -25,6 +25,12 @@
 #endif
 #endif
 
+#ifdef __has_include
+#if __cplusplus > 201402 && __has_include(<string_view>)
+#define MODERN_SQLITE_STD_STRING_VIEW_SUPPORT
+#endif
+#endif
+
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #include <optional>
 #endif
@@ -36,6 +42,10 @@
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 #include <boost/optional.hpp>
+#endif
+
+#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
+#include <string_view>
 #endif
 
 #include <sqlite3.h>
@@ -247,6 +257,7 @@ namespace sqlite {
 		friend database_binder& operator <<(database_binder& db, const std::string& txt);
 		friend void get_col_from_db(database_binder& db, int inx, std::u16string & w);
 		friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
+		friend database_binder& bind_blob(database_binder& db, size_t bytes, const void* buf);
 
 
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
@@ -642,6 +653,26 @@ namespace sqlite {
 		int bytes = vec.size() * sizeof(T);
 		int hresult;
 		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._next_index(), buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
+			errors::throw_sqlite_error(hresult, db.sql());
+		}
+		return db;
+	}
+#ifdef MODERN_SQLITE_STD_STRING_VIEW_SUPPORT
+	// string_view
+	inline database_binder& operator<<(database_binder& db, const std::string_view& str) {
+		void const* buf = reinterpret_cast<void const *>(str.c_str());
+		int bytes = str.size();
+		int hresult;
+		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._next_index(), buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
+			errors::throw_sqlite_error(hresult, db.sql());
+		}
+		return db;
+	}
+#endif
+	// const void*; not sure what to call this?
+	inline database_binder& bind_blob(database_binder& db, size_t bytes, const void* buf) {
+		int hresult;
+		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._next_index(), buf, (int) bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 		return db;
