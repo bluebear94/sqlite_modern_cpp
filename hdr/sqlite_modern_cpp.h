@@ -257,6 +257,7 @@ namespace sqlite {
 		friend database_binder& operator <<(database_binder& db, const std::string& txt);
 		friend void get_col_from_db(database_binder& db, int inx, std::u16string & w);
 		friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
+		friend database_binder& operator<<(database_binder& db, const std::string_view& str);
 		friend database_binder& bind_blob(database_binder& db, size_t bytes, const void* buf);
 
 
@@ -660,7 +661,7 @@ namespace sqlite {
 #ifdef MODERN_SQLITE_STD_STRING_VIEW_SUPPORT
 	// string_view
 	inline database_binder& operator<<(database_binder& db, const std::string_view& str) {
-		void const* buf = reinterpret_cast<void const *>(str.c_str());
+		void const* buf = reinterpret_cast<void const *>(str.data());
 		int bytes = str.size();
 		int hresult;
 		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._next_index(), buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
